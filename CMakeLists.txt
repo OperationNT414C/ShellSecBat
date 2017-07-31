@@ -21,30 +21,5 @@ link_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if (NOT ${RELEASE})
-  add_definitions(-DENABLE_LOGGING)
-endif()
-
-add_executable(shellsecbat
-  main.c
-)
-
-target_link_libraries(shellsecbat
-  taihen_stub
-  SceLibKernel_stub
-  SceIofilemgr_stub
-  k
-  gcc
-  SceRtc_stub
-  ScePower_stub
-  SceKernelModulemgr_stub
-)
-
-set_target_properties(shellsecbat
-  PROPERTIES LINK_FLAGS "-nostdlib"
-)
-
-vita_create_self(shellsecbat.suprx shellsecbat
-  UNSAFE
-  CONFIG ${CMAKE_SOURCE_DIR}/shellsecbat.yml
-)
+add_subdirectory(ShellSecBat)
+add_subdirectory(ShellDateSecBat)
