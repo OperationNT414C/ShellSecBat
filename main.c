@@ -27,6 +27,11 @@
 #include <psp2/power.h>
 #include <taihen.h>
 
+#ifdef ENABLE_DATE
+#include <psp2/registrymgr.h>
+#include <psp2/system_param.h>
+#endif
+
 /*
 offset 0x1844f0:
 int status_draw_battery_patched(int a1, uint8_t a2);
@@ -97,31 +102,54 @@ static tai_hook_ref_t ref_hook1;
 static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
 {
     if (in_draw_time) {
-        int is_ampm = (a2[a2_size - 1] == 'M');
+        char buff[16];
+        int len;
+        int i;
         
         SceDateTime time_local;
-		SceDateTime time_utc;
-		sceRtcGetCurrentClock(&time_utc, 0);
+        SceDateTime time_utc;
+        sceRtcGetCurrentClock(&time_utc, 0);
 
-		SceRtcTick tick;
-		sceRtcGetTick(&time_utc, &tick);
-		sceRtcConvertUtcToLocalTime(&tick, &tick);
-		sceRtcSetTick(&time_local, &tick);
+        SceRtcTick tick;
+        sceRtcGetTick(&time_utc, &tick);
+        sceRtcConvertUtcToLocalTime(&tick, &tick);
+        sceRtcSetTick(&time_local, &tick);
 
-        char buff[10];
-		int len = sceClibSnprintf(buff, 10, ":%02d", time_local.second);
+#ifdef ENABLE_DATE
+        int date_format = SCE_SYSTEM_PARAM_DATE_FORMAT_DDMMYYYY;
+        sceRegMgrGetKeyInt("/CONFIG/DATE", "date_format", &date_format);
+        if (SCE_SYSTEM_PARAM_DATE_FORMAT_DDMMYYYY == date_format)
+            len = sceClibSnprintf(buff, 16, "%02d/%02d  ", time_local.day, time_local.month);
+        else
+            len = sceClibSnprintf(buff, 16, "%02d/%02d  ", time_local.month, time_local.day);
+
+        uint16_t tmp[16];
+        for (i = 0; i < a2_size; ++i) {
+            tmp[i] = a2[i];
+        }
+        for (i = 0; i < len; ++i) {
+            a2[i] = buff[i];
+        }
+        for (i = 0; i < a2_size; ++i) {
+            a2[len+i] = tmp[i];
+        }
+        a2_size += len;
+#endif
+        int is_ampm = (a2[a2_size - 1] == 'M');
+        
+		len = sceClibSnprintf(buff, 16, ":%02d", time_local.second);
         if (is_ampm)
         {
-            for (int i = 0; i < 3; ++i) {
+            for (i = 0; i < 3; ++i) {
                 a2[a2_size + len - 3 + i] = a2[a2_size - 3 + i];
             }
-            for (int i = 0; i < len; ++i) {
+            for (i = 0; i < len; ++i) {
                 a2[a2_size - 3 + i] = buff[i];
             }
         }
         else
         {
-            for (int i = 0; i < len; ++i) {
+            for (i = 0; i < len; ++i) {
                 a2[a2_size + i] = buff[i];
             }
         }
@@ -134,8 +162,8 @@ static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
         }
         oldpercent = percent;
 
-        len = sceClibSnprintf(buff, 10, "  %d%%", percent);
-        for (int i = 0; i < len; ++i) {
+        len = sceClibSnprintf(buff, 16, "  %d%%", percent);
+        for (i = 0; i < len; ++i) {
             a2[a2_size + i] = buff[i];
         }
         a2[a2_size + len] = 0;
