@@ -32,12 +32,51 @@
 #include <psp2/system_param.h>
 #endif
 
+#ifdef ENABLE_DISK
+#include <psp2/ctrl.h>
+#include <psp2/io/devctl.h>
+
+static char *devices[] = {
+	"ur0:",
+	"ux0:",
+	"uma0:"
+};
+#define N_DEVICES (sizeof(devices) / sizeof(char **))
+
+static char *units[] = {
+	"B ",
+	"KB",
+	"MB",
+	"GB",
+    "TB"
+};
+#define N_UNITS (sizeof(units) / sizeof(char **))
+
+static int unitType(SceOff iBytes, int* oConv, int* oCent)
+{
+    SceOff convBytes = iBytes;
+    SceOff divider = 1;
+    int res = 0;
+    while (convBytes > 1023 && res < N_UNITS-1)
+    {
+        divider *= 1024;
+        convBytes /= 1024;
+        res++;
+    }
+    *oConv = (int)convBytes;
+    *oCent = (int)(iBytes%divider)/(divider/102);
+    return res;
+}
+
+static int displayed_disk = N_DEVICES;
+#endif
+
 /*
 offset 0x1844f0:
 int status_draw_battery_patched(int a1, uint8_t a2);
 */
 
-static SceUID g_hooks[2];
+static SceUID g_hooks[6];
 
 uint32_t text_addr, text_size, data_addr, data_size;
 
@@ -75,11 +114,16 @@ static int digit_len(int num)
     }
 }
 
+typedef struct {
+    int start;
+    int length;
+    float height;
+} TextMod;
+
+#define N_FONT_CHANGE 3
+static TextMod fontChange[N_FONT_CHANGE] = { {-1, 2, 16.0} , {-1, 0, 20.0} , {-1, 1, 16.0} };
+
 static int in_draw_time = 0;
-static int ampm_start = -1;
-static int bat_num_start = 0;
-static int bat_num_len = 0;
-static int percent_start = 0;
 
 static tai_hook_ref_t ref_hook0;
 static int status_draw_time_patched(void *a1, int a2)
@@ -88,12 +132,12 @@ static int status_draw_time_patched(void *a1, int a2)
     int out = TAI_CONTINUE(int, ref_hook0, a1, a2);
     in_draw_time = 0;
     if (a1) {
-        // Restore AM/PM size
-        if (ampm_start != -1) {
-            scePafWidgetSetFontSize(a1, 16.0, 1, ampm_start, 2);
+        for (int i = 0; i < N_FONT_CHANGE; i++)
+        {
+            TextMod* curFont = &fontChange[i];
+            if (curFont->start != -1)
+                scePafWidgetSetFontSize(a1, curFont->height, 1, curFont->start, curFont->length);
         }
-        scePafWidgetSetFontSize(a1, 20.0, 1, bat_num_start, bat_num_len);
-        scePafWidgetSetFontSize(a1, 16.0, 1, percent_start, 1);
     }
     return out;
 }
@@ -101,11 +145,77 @@ static int status_draw_time_patched(void *a1, int a2)
 static tai_hook_ref_t ref_hook1;
 static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
 {
-    if (in_draw_time) {
-        char buff[16];
+    if (in_draw_time)
+    {
+        char buff[32];
         int len;
         int i;
-        
+
+#ifdef ENABLE_DISK
+        // Here, buttons state is checked every 1.001 seconds.
+        SceCtrlData pad;
+        sceCtrlPeekBufferPositive(0, &pad, 1);
+		if ((pad.buttons & (SCE_CTRL_SELECT|SCE_CTRL_RTRIGGER)) == (SCE_CTRL_SELECT|SCE_CTRL_RTRIGGER))
+            displayed_disk = (displayed_disk+1)%(N_DEVICES+1);
+		if ((pad.buttons & (SCE_CTRL_SELECT|SCE_CTRL_LTRIGGER)) == (SCE_CTRL_SELECT|SCE_CTRL_LTRIGGER))
+            displayed_disk = (displayed_disk+N_DEVICES)%(N_DEVICES+1);
+
+        if (displayed_disk < N_DEVICES)
+        {
+            SceIoDevInfo info;
+            int res = sceIoDevctl(devices[displayed_disk], 0x3001, NULL, 0, &info, sizeof(SceIoDevInfo));
+
+            if (res >= 0)
+            {
+                int freeConv = 0;
+                int freeDec = 0;
+                int freeUnit = unitType(info.free_size, &freeConv, &freeDec);
+                
+                int maxConv = 0;
+                int maxDec = 0;
+                int maxUnit = unitType(info.max_size, &maxConv, &maxDec);
+                
+                if (freeDec > 0)
+                {
+                    len = sceClibSnprintf(buff, 32, "%s %d.%02d%s/%d.%02d%s", devices[displayed_disk],
+                                freeConv, freeDec, units[freeUnit],
+                                maxConv, maxDec, units[maxUnit]);
+                }
+                else
+                {
+                    len = sceClibSnprintf(buff, 32, "%s %d%s/%d.%02d%s", devices[displayed_disk],
+                                freeConv, units[freeUnit],
+                                maxConv, maxDec, units[maxUnit]);
+                }
+
+                i = 6;
+                while (i < len && buff[i] != '/') i++;
+                fontChange[0].start = i-2;
+                fontChange[0].length = 2;
+
+                fontChange[2].start = len-2;
+                fontChange[2].length = 2;
+            }
+            else
+            {
+                // The 2 spaces at string end avoid a font size issue.
+                len = sceClibSnprintf(buff, 32, "%s Not mounted  ", devices[displayed_disk]);
+
+                fontChange[0].start = -1;
+                fontChange[2].start = -1;
+            }
+
+            for (i = 0; i < len; ++i) {
+                a2[i] = buff[i];
+            }
+            a2[len] = 0;
+            
+            fontChange[1].start = 0;
+            fontChange[1].length = 4;
+            return TAI_CONTINUE(uint16_t**, ref_hook1, a1, a2, len);
+        }
+#endif
+
         SceDateTime time_local;
         SceDateTime time_utc;
         sceRtcGetCurrentClock(&time_utc, 0);
@@ -119,9 +229,9 @@ static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
         int date_format = SCE_SYSTEM_PARAM_DATE_FORMAT_DDMMYYYY;
         sceRegMgrGetKeyInt("/CONFIG/DATE", "date_format", &date_format);
         if (SCE_SYSTEM_PARAM_DATE_FORMAT_DDMMYYYY == date_format)
-            len = sceClibSnprintf(buff, 16, "%02d/%02d  ", time_local.day, time_local.month);
+            len = sceClibSnprintf(buff, 32, "%02d/%02d  ", time_local.day, time_local.month);
         else
-            len = sceClibSnprintf(buff, 16, "%02d/%02d  ", time_local.month, time_local.day);
+            len = sceClibSnprintf(buff, 32, "%02d/%02d  ", time_local.month, time_local.day);
 
         uint16_t tmp[16];
         for (i = 0; i < a2_size; ++i) {
@@ -137,7 +247,7 @@ static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
 #endif
         int is_ampm = (a2[a2_size - 1] == 'M');
         
-		len = sceClibSnprintf(buff, 16, ":%02d", time_local.second);
+        len = sceClibSnprintf(buff, 32, ":%02d", time_local.second);
         if (is_ampm)
         {
             for (i = 0; i < 3; ++i) {
@@ -162,20 +272,23 @@ static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
         }
         oldpercent = percent;
 
-        len = sceClibSnprintf(buff, 16, "  %d%%", percent);
+        len = sceClibSnprintf(buff, 32, "  %d%%", percent);
         for (i = 0; i < len; ++i) {
             a2[a2_size + i] = buff[i];
         }
         a2[a2_size + len] = 0;
 
         if (is_ampm) {
-            ampm_start = a2_size - 2;
+            fontChange[0].start = a2_size - 2;
         } else {
-            ampm_start = -1;
+            fontChange[0].start = -1;
         }
-        bat_num_start = a2_size + 2;
-        bat_num_len = digit_len(percent);
-        percent_start = bat_num_start + bat_num_len;
+        
+        fontChange[1].start = a2_size + 2;
+        fontChange[1].length = digit_len(percent);
+        
+        fontChange[2].start = fontChange[1].start + fontChange[1].length;
+        fontChange[2].length = 1;
 
         return TAI_CONTINUE(uint16_t**, ref_hook1, a1, a2, a2_size + len);
     }
