@@ -13,6 +13,7 @@ target_link_libraries(shelldatesecbat
   SceLibKernel_stub
   k
   gcc
+  SceCtrl_stub
   SceRegistryMgr_stub
   SceRtc_stub
   ScePower_stub
