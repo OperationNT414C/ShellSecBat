@@ -76,7 +76,7 @@ offset 0x1844f0:
 int status_draw_battery_patched(int a1, uint8_t a2);
 */
 
-static SceUID g_hooks[6];
+static SceUID g_hooks[2];
 
 uint32_t text_addr, text_size, data_addr, data_size;
 
