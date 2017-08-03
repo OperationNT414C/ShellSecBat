@@ -11,6 +11,10 @@ ShellDateSecBat adds the date to the status bar (in addition to the time with se
 
 ![Screenshot](https://github.com/OperationNT414C/ShellSecBat/blob/master/doc/ShellDateSecBat.png?raw=true)
 
+You can also visualize your drive state (total size and remaining space) by maintaining SELECT button and L or R trigger.
+
+![Screenshot](https://github.com/OperationNT414C/ShellSecBat/blob/master/doc/ShellDriveState.png?raw=true)
+
 
 ### Installation
 
