@@ -21,5 +21,9 @@ link_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+add_definitions(
+  -DENABLE_DISK
+)
+
 add_subdirectory(ShellSecBat)
 add_subdirectory(ShellDateSecBat)
