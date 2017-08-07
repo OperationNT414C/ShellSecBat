@@ -23,6 +23,7 @@
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/clib.h>
+#include <psp2/kernel/sysmem.h>
 #include <psp2/rtc.h>
 #include <psp2/power.h>
 #include <taihen.h>
@@ -122,6 +123,8 @@ typedef struct {
 
 #define N_FONT_CHANGE 3
 static TextMod fontChange[N_FONT_CHANGE] = { {-1, 2, 16.0} , {-1, 0, 20.0} , {-1, 1, 16.0} };
+
+static int isPSTV = 0;
 
 static int in_draw_time = 0;
 
@@ -265,32 +268,39 @@ static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
         }
         a2_size += len;
 
-        static int oldpercent = 0;
-        int percent = scePowerGetBatteryLifePercent();
-        if (percent < 0 || percent > 100) {
-            percent = oldpercent;
-        }
-        oldpercent = percent;
+        if (!isPSTV)
+        {
+            static int oldpercent = 0;
+            int percent = scePowerGetBatteryLifePercent();
+            if (percent < 0 || percent > 100) {
+                percent = oldpercent;
+            }
+            oldpercent = percent;
 
-        len = sceClibSnprintf(buff, 32, "  %d%%", percent);
-        for (i = 0; i < len; ++i) {
-            a2[a2_size + i] = buff[i];
-        }
-        a2[a2_size + len] = 0;
+            len = sceClibSnprintf(buff, 32, "  %d%%", percent);
+            for (i = 0; i < len; ++i) {
+                a2[a2_size + i] = buff[i];
+            }
 
-        if (is_ampm) {
-            fontChange[0].start = a2_size - 2;
-        } else {
-            fontChange[0].start = -1;
+            fontChange[0].start = is_ampm ? (a2_size - 2) : -1;
+            
+            fontChange[1].start = a2_size + 2;
+            fontChange[1].length = digit_len(percent);
+            
+            fontChange[2].start = fontChange[1].start + fontChange[1].length;
+            fontChange[2].length = 1;
+            
+            a2_size += len;
         }
-        
-        fontChange[1].start = a2_size + 2;
-        fontChange[1].length = digit_len(percent);
-        
-        fontChange[2].start = fontChange[1].start + fontChange[1].length;
-        fontChange[2].length = 1;
+        else
+        {
+            fontChange[0].start = is_ampm ? (a2_size - 2) : -1;
+            fontChange[1].start = -1;
+            fontChange[2].start = -1;
+        }
+        a2[a2_size] = 0;
 
-        return TAI_CONTINUE(uint16_t**, ref_hook1, a1, a2, a2_size + len);
+        return TAI_CONTINUE(uint16_t**, ref_hook1, a1, a2, a2_size);
     }
     return TAI_CONTINUE(uint16_t**, ref_hook1, a1, a2, a2_size);
 }
@@ -349,6 +359,7 @@ int module_start(SceSize argc, const void *args)
                                        1,          // thumb
                                        some_strdup_patched);
 
+    isPSTV = (sceKernelGetModel() == SCE_KERNEL_MODEL_VITATV);
     return SCE_KERNEL_START_SUCCESS;
 }
 
