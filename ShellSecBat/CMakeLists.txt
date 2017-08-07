@@ -9,6 +9,7 @@ target_link_libraries(shellsecbat
   SceLibKernel_stub
   k
   gcc
+  SceSysmem_stub
   SceCtrl_stub
   SceRtc_stub
   ScePower_stub
