@@ -15,6 +15,10 @@ You can also visualize your drive state (total size and remaining space) by main
 
 ![Screenshot](https://github.com/OperationNT414C/ShellSecBat/blob/master/doc/ShellDriveState.png?raw=true)
 
+On a PlayStation TV, the useless battery percent is hidden. All other features (seconds, date and drive state) are still available.
+
+![Screenshot](https://github.com/OperationNT414C/ShellSecBat/blob/master/doc/ShellPSTVDisplay.png?raw=true)
+
 
 ### Installation
 
