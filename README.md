@@ -1,13 +1,13 @@
 # ShellSecBat
 
-Henkaku plugin that shows seconds and battery percent in status bar.
+Henkaku plugin that status bar displayed content customization.
 
 This is a fusion between "ShellBat" and "LastSeconds" plugins.
 It also solves "12 hours" format issue when those plugins were manually combined.
 
 ![Screenshot](https://github.com/OperationNT414C/ShellSecBat/blob/master/doc/ShellSecBat.png?raw=true)
 
-Configurated ShellSecBat allow to add the date to the status bar (in addition to the time with seconds and the battery percent).
+Configurated ShellSecBat allows to add the date to the status bar (in addition to the time with seconds and the battery percent).
 
 ![Screenshot](https://github.com/OperationNT414C/ShellSecBat/blob/master/doc/ShellDateSecBat.png?raw=true)
 
@@ -49,7 +49,7 @@ Time:[Seconds display enabled][Date display enabled][Year display disabled][Date
 ```
 
 You should be aware that this configuration file reading is very basic (and it could easily fail if there is even some slightest mistake).
-Keywords `Feature:` and `Time:` are used to find parts of configuration, there must the configurations parameters (1 to enable, 0 to disable) just after the `:` character (without any blank character between).
+Keywords `Feature:` and `Time:` are used to find parts of configuration, there must be the configurations parameters (1 to enable, 0 to disable) just after the `:` character (without any blank character between).
 
  * Invalid configuration: `Features: 11`
  * Valid configuration: `Features:11`
