@@ -1,4 +1,4 @@
-# ShellSecBat and ShellDateSecBat
+# ShellSecBat
 
 Henkaku plugin that shows seconds and battery percent in status bar.
 
