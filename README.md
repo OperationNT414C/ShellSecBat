@@ -49,6 +49,7 @@ Time:[Seconds display enabled][Date display enabled][Year display disabled][Date
 ```
 
 You should be aware that this configuration file reading is very basic (and it could easily fail if there is even some slightest mistake).
+
 Keywords `Feature:` and `Time:` are used to find parts of configuration, there must be the configurations parameters (1 to enable, 0 to disable) just after the `:` character (without any blank character between).
 
  * Invalid configuration: `Features: 11`
