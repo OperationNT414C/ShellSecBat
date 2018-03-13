@@ -21,9 +21,29 @@ link_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-add_definitions(
-  -DENABLE_DISK
+add_executable(shellsecbat
+  ${CMAKE_SOURCE_DIR}/main.c
 )
 
-add_subdirectory(ShellSecBat)
-add_subdirectory(ShellDateSecBat)
+target_link_libraries(shellsecbat
+  taihen_stub
+  SceLibKernel_stub
+  k
+  gcc
+  SceSysmem_stub
+  SceCtrl_stub
+  SceRegistryMgr_stub
+  SceRtc_stub
+  ScePower_stub
+  SceKernelModulemgr_stub
+  SceIofilemgr_stub
+)
+
+set_target_properties(shellsecbat
+  PROPERTIES LINK_FLAGS "-nostdlib"
+)
+
+vita_create_self(shellsecbat.suprx shellsecbat
+  UNSAFE
+  CONFIG ${CMAKE_SOURCE_DIR}/export.yml
+)
