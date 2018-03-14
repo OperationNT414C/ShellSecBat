@@ -53,6 +53,7 @@ Only the following paths are supported for the configuration file (they will be 
  * `ur0:/tai/ShellSecBat.txt`
  * `ur0:/plugins/ShellSecBat.txt`
 
+ 
 The file must follows the following rules:
 
 ```
@@ -62,6 +63,7 @@ Drives:[Skip unmounted][Free space display][Space decimal separator][imc0:][ur0:
 LeftKey:[Keys combination for previous drive display]
 RightKey:[Keys combination for next drive display]
 ```
+
 
 You should be aware that configuration file reading is very basic (and it could easily fail if there is even the slightest mistake).
 
@@ -73,14 +75,16 @@ Once a configuration part is found, configuration parameters must directly follo
 
 For parameters which can be activated (all parameters except keys and separators), `1` means that it is enabled and any other character means that it is disabled.
 
-`LeftKey:` and `RightKey:` must be followed by an hexadecimal value which describes the key combination. Hexadecimal flags for each key can be found here (on "SceCtrlButtons" section):
+`LeftKey:` and `RightKey:` must be followed by an hexadecimal value which describes the key combination. Hexadecimal flags for each key can be found here (on `SceCtrlButtons` section):
 
 https://github.com/vitasdk/vita-headers/blob/master/include/psp2/ctrl.h
+
 
 Additional rules are applied:
  * Keywords can appear in any order in the configuration but parameters must always exactly match what the keyword expects
  * `Drives:`, `LeftKey:` and `RightKey:` won't be parsed if "[Drives display]" is disabled
  * On PlayStation TV, "[Battery display]" is ignored as it will always be disabled
+
 
 You can simulate ShellSecBat and ShellDateSecBat previous versions (prior to configuration file support) with the following configurations:
 
