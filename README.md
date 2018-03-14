@@ -34,33 +34,57 @@ Please remove any other plugin which impacts the status bar display (like "Shell
 
 ### Configuration
 
-ShellSecBat can be configurated through a "ShellSecBat.txt" file. The file size should not exceed 64 bytes and its content should look like:
+ShellSecBat can be configurated through a "ShellSecBat.txt" file. The file size should not exceed 116 bytes and its content should look like:
 
 ```
 Features:11
-Time:110/
+Time:100/
+Drives:11.11111
+LeftKey:101
+RightKey:201
 ```
 
-This configuration means:
+This configuration sample matches the official default ShellSecBat settings (when there is no found configuration file).
 
-```
-Features:[Drives display enabled][Battery display enabled]
-Time:[Seconds display enabled][Date display enabled][Year display disabled][Date separation character]
-```
-
-You should be aware that this configuration file reading is very basic (and it could easily fail if there is even some slightest mistake).
-
-Keywords `Feature:` and `Time:` are used to find parts of configuration, there must be the configurations parameters (1 to enable, 0 to disable) just after the `:` character (without any blank character between).
-
- * Invalid configuration: `Features: 11`
- * Valid configuration: `Features:11`
-
-Only the following paths are supported for the configuration file (they will be check in the same order):
+Only the following paths are supported for the configuration file (they will be check in this same order):
 
  * `ux0:/data/ShellSecBat.txt`
  * `ux0:/tai/ShellSecBat.txt`
  * `ur0:/tai/ShellSecBat.txt`
  * `ur0:/plugins/ShellSecBat.txt`
+
+The file must follows the following rules:
+
+```
+Features:[Drives display][Battery display]
+Time:[Seconds display][Date display][Year display][Date separator]
+Drives:[Skip unmounted][Free space display][Space decimal separator][imc0:][ur0:][ux0:][uma0:][grw0:]
+LeftKey:[Keys combination for previous drive display]
+RightKey:[Keys combination for next drive display]
+```
+
+You should be aware that configuration file reading is very basic (and it could easily fail if there is even the slightest mistake).
+
+Keywords `Feature:`, `Time:`, `Drives:`, `LeftKey:` and `RightKey:`  are used to find configuration parts.
+Once a configuration part is found, configuration parameters must directly follow the `:` character (without any blank character between):
+
+ * Valid configuration part: `Features:01`
+ * Invalid configuration part: `Features: 11`
+
+For parameters which can be activated (all parameters except keys and separators), "1" means that it is enabled and any other character means that it is disabled.
+
+`LeftKey:` and `RightKey:` must be followed by an hexadecimal value which describes the key combination. Hexadecimal flags for each key can be found here (on "SceCtrlButtons" section):
+https://github.com/vitasdk/vita-headers/blob/master/include/psp2/ctrl.h
+
+Additional rules are applied:
+ * Keywords can appear in any order in the configuration but parameters must always exactly match what the keyword expects
+ * `Drives:`, `LeftKey:` and `RightKey:` won't be parsed if "[Drives display]" is disabled
+ * On PlayStation TV, "[Battery display]" is ignored as it will always be disabled
+
+You can simulate previous ShellSecBat and ShellDateSecBat behaviors with the following configurations:
+
+ * ShellSecBat V4 behaviors: `Features:11 Time:100/ Drives:01.01110 LeftKey:101 RightKey:201`
+ * ShellDateSecBat V4 behaviors: `Features:11 Time:110/ Drives:01.01110 LeftKey:101 RightKey:201`
 
 
 
