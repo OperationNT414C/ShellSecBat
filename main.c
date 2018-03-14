@@ -40,16 +40,28 @@ static char *devices[] = {
     "imc0:",
     "ur0:",
 	"ux0:",
-	"uma0:"
+	"uma0:",
+	"grw0:"
 };
 #define N_DEVICES (sizeof(devices) / sizeof(char **))
 
 
-// Configuration format:
+// Configuration format
 // Features:[Drives display][Battery display]
 // Time:[Seconds display][Date display][Year display][Date separator]
-// Drives:[Skip unmounted][imc0:][ur0:][ux0:][uma0:]
-// File content example "Features:11 Time:100/ Drives:11111"
+// Drives:[Skip unmounted][Free space display][Space decimal separator][imc0:][ur0:][ux0:][uma0:][grw0:]
+// LeftKey:[Keys combination for previous drive display]
+// RightKey:[Keys combination for next drive display]
+
+// File content for default settings
+// Features:11 Time:100/ Drives:11.11111 LeftKey:101 RightKey:201
+
+// File content for ShellSecBat V4 behavior
+// Features:11 Time:100/ Drives:01.01110 LeftKey:101 RightKey:201
+
+// File content for ShellDateSecBat V4 behavior
+// Features:11 Time:110/ Drives:01.01110 LeftKey:101 RightKey:201
+
 
 static char *configPathes[] = {
     "ux0:/data/ShellSecBat.txt",
@@ -68,13 +80,47 @@ static int displayYear = 0;
 static char dateSeparator = '/';
 
 static int skipUnmounted = 1;
-static int displayedDrives[N_DEVICES] = {1,1,1,1};
+static int displayFree = 1;
+static char spaceSeparator = '.';
+static int displayedDrives[N_DEVICES] = {1,1,1,1,1};
+static unsigned int driveKeys[2] = {SCE_CTRL_SELECT|SCE_CTRL_LTRIGGER, SCE_CTRL_SELECT|SCE_CTRL_RTRIGGER};
+
 
 static char* seekChar(char* iStr, char iChar)
 {
     while (*iStr != iChar && *iStr != '\0')
         iStr++;
     return (*iStr != '\0') ? iStr : NULL;
+}
+
+static char* seekDoubleChar(char* iStr, char iChar1, char iChar2)
+{
+    while ((iStr[0] != iChar1 || iStr[1] != iChar2) && *iStr != '\0')
+        iStr++;
+    return (*iStr != '\0') ? iStr : NULL;
+}
+
+static void getHexValue(char* iStr, unsigned int* oValue)
+{
+    char* str = iStr;
+    while (((*str >= '0' && *str <= '9') || (*str >= 'a' && *str <= 'f') || (*str >= 'A' && *str <= 'F')) && str-iStr < 8)
+        str++;
+
+    char size = str-iStr;
+    if (size <= 0 || (*str != ' ' && *str != '\t' && *str != '\r' && *str != '\n' && *str != '\0'))
+        return;
+    
+    *oValue = 0;
+    unsigned int factor = 1;
+    for (str -= 1; str >= iStr; str--, factor *= 16)
+    {
+        if (*str >= 'a' && *str <= 'f')
+            *str -= ('a' - 'A');
+        if (*str >= 'A' && *str <= 'F')
+            *oValue += (10 + *str - 'A') * factor;
+        else
+            *oValue += (*str - '0') * factor;
+    }
 }
 
 
@@ -202,21 +248,41 @@ static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
             // Here, buttons state is checked every 1.001 seconds.
             SceCtrlData pad;
             sceCtrlPeekBufferPositive(0, &pad, 1);
-            if ((pad.buttons & (SCE_CTRL_SELECT|SCE_CTRL_RTRIGGER)) == (SCE_CTRL_SELECT|SCE_CTRL_RTRIGGER))
-                displayed_disk = (displayed_disk+1)%(N_DEVICES+1);
-            if ((pad.buttons & (SCE_CTRL_SELECT|SCE_CTRL_LTRIGGER)) == (SCE_CTRL_SELECT|SCE_CTRL_LTRIGGER))
-                displayed_disk = (displayed_disk+N_DEVICES)%(N_DEVICES+1);
+
+            int nextDrive = ((pad.buttons & driveKeys[1]) == driveKeys[1]) ? 1 : 0;
+            int prevDrive = ((pad.buttons & driveKeys[0]) == driveKeys[0]) ? 1 : 0;
+            
+            SceIoDevInfo info;
+            int res = -1;
+
+            if (1 == nextDrive + prevDrive) // XOR on drive display commands
+            {
+                while (res < 0)
+                {
+                    do
+                    {
+                        displayed_disk = (nextDrive ? (displayed_disk+1) : (displayed_disk+N_DEVICES))%(N_DEVICES+1);
+                    }
+                    while (displayed_disk < N_DEVICES && !displayedDrives[displayed_disk]);
+
+                    if (displayed_disk == N_DEVICES)
+                        break;
+
+                    res = sceIoDevctl(devices[displayed_disk], 0x3001, NULL, 0, &info, sizeof(SceIoDevInfo));
+                    if (!skipUnmounted)
+                        break;
+                }
+            }
+            else if (displayed_disk < N_DEVICES)
+                res = sceIoDevctl(devices[displayed_disk], 0x3001, NULL, 0, &info, sizeof(SceIoDevInfo));
 
             if (displayed_disk < N_DEVICES)
             {
-                SceIoDevInfo info;
-                int res = sceIoDevctl(devices[displayed_disk], 0x3001, NULL, 0, &info, sizeof(SceIoDevInfo));
-
                 if (res >= 0)
                 {
                     int freeConv = 0;
                     int freeDec = 0;
-                    int freeUnit = unitType(info.free_size, &freeConv, &freeDec);
+                    int freeUnit = unitType(displayFree ? info.free_size : (info.max_size-info.free_size), &freeConv, &freeDec);
                     
                     int maxConv = 0;
                     int maxDec = 0;
@@ -224,15 +290,15 @@ static uint16_t **some_strdup_patched(uint16_t **a1, uint16_t *a2, int a2_size)
                     
                     if (freeDec > 0)
                     {
-                        len = sceClibSnprintf(buff, 32, "%s %d.%02d%s/%d.%02d%s", devices[displayed_disk],
-                                    freeConv, freeDec, units[freeUnit],
-                                    maxConv, maxDec, units[maxUnit]);
+                        len = sceClibSnprintf(buff, 32, "%s %d%c%02d%s/%d%c%02d%s", devices[displayed_disk],
+                                    freeConv, spaceSeparator, freeDec, units[freeUnit],
+                                    maxConv, spaceSeparator, maxDec, units[maxUnit]);
                     }
                     else
                     {
-                        len = sceClibSnprintf(buff, 32, "%s %d%s/%d.%02d%s", devices[displayed_disk],
+                        len = sceClibSnprintf(buff, 32, "%s %d%s/%d%c%02d%s", devices[displayed_disk],
                                     freeConv, units[freeUnit],
-                                    maxConv, maxDec, units[maxUnit]);
+                                    maxConv, spaceSeparator, maxDec, units[maxUnit]);
                     }
 
                     i = 6;
@@ -444,7 +510,7 @@ int module_start(SceSize argc, const void *args)
         if (fd >= 0)
         {
             fileSize = sceIoLseek(fd, 0, SCE_SEEK_END);
-            if (fileSize > 64)
+            if (fileSize > 116)
             {
                 sceIoClose(fd);
                 fd = -1;
@@ -455,35 +521,54 @@ int module_start(SceSize argc, const void *args)
 
     if (fd >= 0)
     {
-        char configStr[72];
+        char configStr[128];
         sceIoLseek(fd, 0, SCE_SEEK_SET);
         sceIoRead(fd, configStr, fileSize);
         sceIoClose(fd);
-        sceClibMemset(&(configStr[fileSize]), '\0', 12);
+        configStr[fileSize] = '\0';
+        sceClibMemset(&(configStr[fileSize+1]), ' ', 11);
         
         // Look for features
         char* seeked = configStr;
-        if ((seeked = seekChar(seeked, 'F')) && (seeked = seekChar(seeked, ':')))
+        if ((seeked = seekDoubleChar(seeked, 'F', 'e')) && (seeked = seekChar(seeked, ':')))
         {
             displayDrives = ('1' == seeked[1]);
             displayBattery = (displayBattery && '1' == seeked[2]);
         }
         
         seeked = configStr;
-        if ((seeked = seekChar(seeked, 'T')) && (seeked = seekChar(seeked, ':')))
+        if ((seeked = seekDoubleChar(seeked, 'T', 'i')) && (seeked = seekChar(seeked, ':')))
         {
             displaySeconds = ('1' == seeked[1]);
             displayDate = ('1' == seeked[2]);
-            displayYear = ('1' == seeked[3]);
-            dateSeparator = seeked[4];
+            if (displayDate)
+            {
+                displayYear = ('1' == seeked[3]);
+                if ('\0' != seeked[4])
+                    dateSeparator = seeked[4];
+            }
         }
 
-        seeked = configStr;
-        if ((seeked = seekChar(seeked, 'D')) && (seeked = seekChar(seeked, ':')))
+        if (displayDrives)
         {
-            skipUnmounted = ('1' == seeked[1]);
-            for (i = 0; i < N_DEVICES; i++)
-                displayedDrives[i] = ('1' == seeked[2+i]);
+            seeked = configStr;
+            if ((seeked = seekDoubleChar(seeked, 'D', 'r')) && (seeked = seekChar(seeked, ':')))
+            {
+                skipUnmounted = ('1' == seeked[1]);
+                displayFree = ('1' == seeked[2]);
+                if ('\0' != seeked[3])
+                    spaceSeparator = seeked[3];
+                for (i = 0; i < N_DEVICES; i++)
+                    displayedDrives[i] = ('1' == seeked[4+i]);
+            }
+
+            seeked = configStr;
+            if ((seeked = seekDoubleChar(seeked, 'L', 'e')) && (seeked = seekChar(seeked, ':')))
+                getHexValue(&seeked[1], &driveKeys[0]);
+
+            seeked = configStr;
+            if ((seeked = seekDoubleChar(seeked, 'R', 'i')) && (seeked = seekChar(seeked, ':')))
+                getHexValue(&seeked[1], &driveKeys[1]);
         }
     }
 
