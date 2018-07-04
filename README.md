@@ -59,7 +59,7 @@ The file must follows the following rules:
 ```
 Features:[Drives display][Battery display]
 Time:[Seconds display][Date display][Year display][Date separator]
-Drives:[Skip unmounted][Free space display][Space decimal separator][imc0:][ur0:][ux0:][uma0:][grw0:]
+Drives:[Skip unmounted][Free space display][Space decimal separator][imc0:][ur0:][ux0:][uma0:][xmc0:][grw0:]
 LeftKey:[Keys combination for previous drive display]
 RightKey:[Keys combination for next drive display]
 ```
@@ -88,8 +88,8 @@ Additional rules are applied:
 
 You can simulate ShellSecBat and ShellDateSecBat previous versions (prior to configuration file support) with the following configurations:
 
- * ShellSecBat V4 behavior: `Features:11 Time:100/ Drives:01.01110 LeftKey:101 RightKey:201`
- * ShellDateSecBat V4 behavior: `Features:11 Time:110/ Drives:01.01110 LeftKey:101 RightKey:201`
+ * ShellSecBat V4 behavior: `Features:11 Time:100/ Drives:01.011100 LeftKey:101 RightKey:201`
+ * ShellDateSecBat V4 behavior: `Features:11 Time:110/ Drives:01.011100 LeftKey:101 RightKey:201`
 
 
 
