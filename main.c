@@ -41,6 +41,7 @@ static char *devices[] = {
     "ur0:",
 	"ux0:",
 	"uma0:",
+	"xmc0:",
 	"grw0:"
 };
 #define N_DEVICES (sizeof(devices) / sizeof(char **))
@@ -49,7 +50,7 @@ static char *devices[] = {
 // Configuration format
 // Features:[Drives display][Battery display]
 // Time:[Seconds display][Date display][Year display][Date separator]
-// Drives:[Skip unmounted][Free space display][Space decimal separator][imc0:][ur0:][ux0:][uma0:][grw0:]
+// Drives:[Skip unmounted][Free space display][Space decimal separator][imc0:][ur0:][ux0:][uma0:][xmc0:][grw0:]
 // LeftKey:[Keys combination for previous drive display]
 // RightKey:[Keys combination for next drive display]
 
@@ -82,7 +83,7 @@ static char dateSeparator = '/';
 static int skipUnmounted = 1;
 static int displayFree = 1;
 static char spaceSeparator = '.';
-static int displayedDrives[N_DEVICES] = {1,1,1,1,1};
+static int displayedDrives[N_DEVICES] = {1,1,1,1,1,1};
 static unsigned int driveKeys[2] = {SCE_CTRL_SELECT|SCE_CTRL_LTRIGGER, SCE_CTRL_SELECT|SCE_CTRL_RTRIGGER};
 
 
