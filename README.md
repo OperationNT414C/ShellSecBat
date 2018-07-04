@@ -39,7 +39,7 @@ ShellSecBat can be configurated through a "ShellSecBat.txt" file. The file size 
 ```
 Features:11
 Time:100/
-Drives:11.11111
+Drives:11.111111
 LeftKey:101
 RightKey:201
 ```
