@@ -39,10 +39,10 @@
 static char *devices[] = {
     "imc0:",
     "ur0:",
-	"ux0:",
-	"uma0:",
-	"xmc0:",
-	"grw0:"
+    "ux0:",
+    "uma0:",
+    "xmc0:",
+    "grw0:"
 };
 #define N_DEVICES (sizeof(devices) / sizeof(char **))
 
@@ -55,13 +55,13 @@ static char *devices[] = {
 // RightKey:[Keys combination for next drive display]
 
 // File content for default settings
-// Features:11 Time:100/ Drives:11.11111 LeftKey:101 RightKey:201
+// Features:11 Time:100/ Drives:11.111111 LeftKey:101 RightKey:201
 
 // File content for ShellSecBat V4 behavior
-// Features:11 Time:100/ Drives:01.01110 LeftKey:101 RightKey:201
+// Features:11 Time:100/ Drives:01.011100 LeftKey:101 RightKey:201
 
 // File content for ShellDateSecBat V4 behavior
-// Features:11 Time:110/ Drives:01.01110 LeftKey:101 RightKey:201
+// Features:11 Time:110/ Drives:01.011100 LeftKey:101 RightKey:201
 
 
 static char *configPathes[] = {
@@ -127,9 +127,9 @@ static void getHexValue(char* iStr, unsigned int* oValue)
 
 static char *units[] = {
     "B ",
-	"KB",
-	"MB",
-	"GB",
+    "KB",
+    "MB",
+    "GB",
     "TB"
 };
 #define N_UNITS (sizeof(units) / sizeof(char **))
