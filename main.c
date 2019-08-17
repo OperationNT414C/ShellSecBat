@@ -130,7 +130,8 @@ static char *units[] = {
     "KB",
     "MB",
     "GB",
-    "TB"
+    "TB",
+    "PB"
 };
 #define N_UNITS (sizeof(units) / sizeof(char **))
 
@@ -146,7 +147,7 @@ static int unitType(SceOff iBytes, int* oConv, int* oCent)
         res++;
     }
     *oConv = (int)convBytes;
-    *oCent = (int)(iBytes%divider)/(divider/102);
+    *oCent = (int)((iBytes%divider)/(divider/102));
     return res;
 }
 
@@ -175,22 +176,17 @@ uint32_t text_addr, text_size, data_addr, data_size;
 static int (*scePafWidgetSetFontSize)(void *widget, float size, int unk0, int pos, int len);
 
 
+static void get_functions_retail_355()
+{
+    scePafWidgetSetFontSize = (void*) text_addr + 0x45c950;
+}
+
 static void get_functions_retail_360()
 {
     scePafWidgetSetFontSize = (void*) text_addr + 0x45ce80;
 }
 
-static void get_functions_retail_365()
-{
-    scePafWidgetSetFontSize = (void*) text_addr + 0x45d2c8;
-}
-
-static void get_functions_retail_367()
-{
-    scePafWidgetSetFontSize = (void*) text_addr + 0x45D2C8;
-}
-
-static void get_functions_retail_368()
+static void get_functions_retail_365_368()
 {
     scePafWidgetSetFontSize = (void*) text_addr + 0x45D2C8;
 }
@@ -476,7 +472,13 @@ int module_start(SceSize argc, const void *args)
 
     uint32_t offsets[2];
 
-switch (info.module_nid) {
+    switch (info.module_nid) {
+    case 0x8978D25D: // retail 3.55 SceShell
+        offsets[0] = 0x183EF0;
+        offsets[1] = 0x40DBD8;
+        get_functions_retail_355();
+        break;
+
     case 0x0552F692: // retail 3.60 SceShell
         offsets[0] = 0x183ea4;
         offsets[1] = 0x40e0b4;
@@ -484,21 +486,11 @@ switch (info.module_nid) {
         break;
 
     case 0x5549BF1F: // retail 3.65 SceShell
-        offsets[0] = 0x183f6c;
-        offsets[1] = 0x40e4fc;
-        get_functions_retail_365();
-        break;
-
     case 0x34B4D82E: // retail 3.67 SceShell
-        offsets[0] = 0x183F6C;
-        offsets[1] = 0x40E4FC;
-        get_functions_retail_367();
-        break;
-
     case 0x12DAC0F3: // retail 3.68 SceShell
         offsets[0] = 0x183F6C;
         offsets[1] = 0x40E4FC;
-        get_functions_retail_368();
+        get_functions_retail_365_368();
         break;
 
     case 0xEAB89D5C: // PTEL 3.60 SceShell
